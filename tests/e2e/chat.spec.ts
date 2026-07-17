@@ -115,15 +115,20 @@ test("English chunks are subtle, clickable, and preserve message text order", as
 });
 
 test("keeps Chinese-only scope across turns and resumes only after user English", async ({ page }) => {
-  await page.getByTestId("composer-input").fill("请只用中文");
-  await page.getByTestId("send-message").click();
-  await expect(page.getByTestId("message-assistant").last()).toBeVisible({ timeout: 10_000 });
-  await page.getByTestId("composer-input").fill("继续分析这个方案");
-  await page.getByTestId("send-message").click();
-  await expect(page.getByTestId("message-assistant").last().getByTestId("english-chunk")).toHaveCount(0);
-  await page.getByTestId("composer-input").fill("I think this works，你怎么看？");
-  await page.getByTestId("send-message").click();
-  await expect(page.getByTestId("message-assistant").last()).toBeVisible({ timeout: 10_000 });
+  const assistantMessages = page.getByTestId("message-assistant");
+  const sendAndWaitForReply = async (content: string) => {
+    const previousCount = await assistantMessages.count();
+    await page.getByTestId("composer-input").fill(content);
+    await expect(page.getByTestId("send-message")).toBeEnabled();
+    await page.getByTestId("send-message").click();
+    await expect(assistantMessages).toHaveCount(previousCount + 1, { timeout: 15_000 });
+    return assistantMessages.last();
+  };
+
+  await sendAndWaitForReply("请只用中文");
+  const chineseOnlyReply = await sendAndWaitForReply("继续分析这个方案");
+  await expect(chineseOnlyReply.getByTestId("english-chunk")).toHaveCount(0);
+  await sendAndWaitForReply("I think this works，你怎么看？");
 });
 
 test("exposes a valid PWA manifest", async ({ request }) => {
