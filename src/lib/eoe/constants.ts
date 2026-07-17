@@ -1,0 +1,11 @@
+export const EOE_POLICY_VERSION = "eoe.scheduler.text-beta-rc.v1";
+export const EOE_SELECTOR_VERSION = "eoe.selector.text-beta-rc.v1";
+export const EOE_DIRECTIVE_VERSION = "eoe.directive.text-beta-rc.v1";
+export const EOE_VALIDATOR_VERSION = "eoe.validator.text-beta-rc.v1";
+export const EOE_NATURALNESS_VALIDATOR_VERSION = "eoe.soft-quality.text-beta-rc.v1";
+export const EOE_RESPONSE_SCHEMA_VERSION = "eoe.response.v2" as const;
+export const EOE_PROVIDER_ENVELOPE_SCHEMA_VERSION = "eoe.provider-envelope.v1" as const;
+export const EOE_PROVIDER_TEMPLATE_SCHEMA_VERSION = "eoe.provider-template.v1" as const;
+export const EOE_REALIZATION_POLICY_VERSION = "eoe.realization.text-beta-rc.v1";
+export const EOE_TEMPLATE_VALIDATOR_VERSION = "eoe.template-validator.text-beta-rc.v1";
+export const EOE_TASK_COMPLETENESS_VERSION = "eoe.task-completeness.text-beta-rc.v1";

@@ -1,0 +1,9 @@
+/artifacts export-ignore
+/.eoe-runtime export-ignore
+/.env export-ignore
+/.env.local export-ignore
+/.env.*.local export-ignore
+/node_modules export-ignore
+/.next export-ignore
+/test-results export-ignore
+/playwright-report export-ignore

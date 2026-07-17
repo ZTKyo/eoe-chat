@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <rect width="640" height="400" fill="#f0e7d8"/>
+  <rect x="90" y="210" width="460" height="24" fill="#8b5e3c"/>
+  <rect x="140" y="105" width="120" height="105" rx="8" fill="#d9544d"/>
+  <circle cx="380" cy="165" r="45" fill="#f2c14e"/>
+  <path d="M470 210 L510 105 L550 210 Z" fill="#4f8f72"/>
+  <text x="90" y="305" font-family="Arial" font-size="28" fill="#3b332b">box · ball · plant</text>
+</svg>

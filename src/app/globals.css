@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f8fa;
+  --surface: #ffffff;
+  --surface-soft: #f0f2f4;
+  --surface-hover: #e8ebed;
+  --line: #e4e7e9;
+  --line-strong: #d4dadd;
+  --text: #202426;
+  --muted: #727b80;
+  --brand: #17252a;
+  --brand-soft: #e7f1ef;
+  --accent: #2c6e65;
+  --danger: #b74747;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+textarea,
+input {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: #cce5df;
+}
+
+.scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: #cfd5d7 transparent;
+}
+
+.scrollbar-subtle::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-subtle::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cfd5d7;
+}
+
+.safe-bottom {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.message-prose {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.72;
+}
+
+.fade-up {
+  animation: fade-up 220ms ease-out both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
