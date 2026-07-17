@@ -85,4 +85,28 @@ describe("Candidate Selector", () => {
       analysis,
     })).toMatchObject({ candidates: [], noFit: true });
   });
+
+  it("does not use standalone agreement reactions for an unrelated factual answer", () => {
+    const answerAnalysis = {
+      ...analysis,
+      primaryFunction: "answer" as const,
+      secondaryFunction: undefined,
+    };
+    const decision = scheduleOverlay({
+      analysis: answerAnalysis,
+      fixedLevel: 2,
+      enabled: true,
+      hasImage: false,
+    });
+    const result = selectCandidates({
+      registry: LIVE_SAFE_PHRASES,
+      decision,
+      analysis: answerAnalysis,
+      userMessage: "布偶猫为什么叫布偶猫？",
+      recentExposurePhraseIds: [],
+      realizationProfiles: LIVE_SAFE_REALIZATION_PROFILE_MAP,
+    });
+    expect(result.candidates.map((candidate) => candidate.phraseId)).not.toContain("p-that-makes-sense");
+    expect(result.candidates.map((candidate) => candidate.phraseId)).not.toContain("p-sounds-good");
+  });
 });

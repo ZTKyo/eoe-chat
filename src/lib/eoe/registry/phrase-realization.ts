@@ -100,7 +100,7 @@ export const PHRASE_REALIZATION_PROFILES: PhraseRealizationProfile[] = [
     allowedPositions: ["sentence_start", "sentence_middle"],
     canBeWholeClause: true,
     canBeStandaloneReaction: true,
-    preferredFunctions: ["react", "empathize", "answer"],
+    preferredFunctions: ["react", "empathize"],
     betaFrame: betaFrame("p-that-makes-sense", {
       autoLiveSafe: true,
       allowedFrameTypes: ["standalone_reaction", "user_phrase_reuse"],
@@ -191,7 +191,7 @@ export const PHRASE_REALIZATION_PROFILES: PhraseRealizationProfile[] = [
     allowedPositions: ["sentence_start", "sentence_middle"],
     canBeWholeClause: true,
     canBeStandaloneReaction: true,
-    preferredFunctions: ["react", "answer"],
+    preferredFunctions: ["react"],
     betaFrame: betaFrame("p-sounds-good", {
       autoLiveSafe: true,
       allowedFrameTypes: ["standalone_reaction", "user_phrase_reuse"],

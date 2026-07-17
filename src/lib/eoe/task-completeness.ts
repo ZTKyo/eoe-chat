@@ -30,6 +30,8 @@ import {
 const planPattern = /计划|安排|日程|下周|每天|阶段/u;
 const comparisonPattern = /两个方案|两种方案|如何选择|怎么选|比较|对比|拿不定主意|权衡|取舍/u;
 const explicitChinesePattern = /只用中文|请用中文|不要英文|全中文/u;
+const nonAnsweringTemplatePattern =
+  /先抓住核心关系：确认现象、找出直接原因|你把具体例子或报错补充出来|可以从目标、现状和限制三个方面继续展开|这次生成的回复没有通过质量检查/u;
 
 function obligation(kind: ResponseObligationKind, description: string, minimumEvidence?: string[]): ResponseObligation {
   return { id: `obligation-${kind}`, kind, description, required: true, minimumEvidence };
@@ -175,7 +177,11 @@ export function reviewTaskCompleteness(input: {
     let itemIssues: string[] = [];
     switch (item.kind) {
       case "answer_question":
-        if (!text || /^(?:收到|好的|可以|明白)[。！]?$/u.test(text)) itemIssues = ["empty_or_trivial_answer"];
+        if (!text || /^(?:收到|好的|可以|明白)[。！]?$/u.test(text)) {
+          itemIssues = ["empty_or_trivial_answer"];
+        } else if (nonAnsweringTemplatePattern.test(text)) {
+          itemIssues = ["non_answering_template"];
+        }
         break;
       case "provide_plan":
         itemIssues = reviewPlanRequirements(

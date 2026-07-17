@@ -25,7 +25,7 @@ describe("EOE Golden Conversation Corpus", () => {
     const text = segmentsToPlainText(result.response.segments);
     const chunks = result.response.segments.filter((segment) => segment.type === "english_chunk");
     expect(result.diagnostics.analysis.primaryFunction).toBe(scenario.expectedFunction);
-    expect(result.diagnostics.finalValidation.valid).toBe(true);
+    expect(result.diagnostics.finalValidation.valid).toBe(!result.diagnostics.naturalFallbackUsed);
     expect(text.length).toBeGreaterThan(8);
     expect(text).toMatch(/[\u3400-\u9fff]/u);
     expect(text).not.toMatch(/今天我们来学习|翻译成英文是|意思是|发音是/u);
@@ -38,7 +38,7 @@ describe("EOE Golden Conversation Corpus", () => {
     if (result.response.noFit) expect(chunks).toHaveLength(0);
     if (scenario.mockScenario === "double_failure") {
       expect(result.diagnostics.naturalFallbackUsed).toBe(true);
-      expect(text).toContain("核心关系");
+      expect(text).toContain("没有通过质量检查");
     }
   });
 });

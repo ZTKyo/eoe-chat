@@ -767,6 +767,7 @@ export async function runEoeEngine(input: {
   let latestPremisePreservation: PremisePreservationReview | undefined;
   let displayedWithSoftQualityWarning = false;
   const hardValidCandidates: HardValidCandidate[] = [];
+  const safeIncompleteCandidates: HardValidCandidate[] = [];
   let finalNoFitReason: NoFitReason | undefined;
   let realizedPhrasePosition: RealizationPosition | undefined;
   const selectedPhrase = selection.selectedPhraseId ? getPhraseById(selection.selectedPhraseId) : undefined;
@@ -879,6 +880,36 @@ export async function runEoeEngine(input: {
     ? visionObservation ? [1] : []
     : [1, 2];
   for (const attemptNumber of generationAttemptNumbers) {
+    const retryWithoutOverlay = attemptNumber === 2 && Boolean(
+      previousValidation && (
+        previousValidation.violations.some((violation) =>
+          violation.code === "task_incomplete" ||
+          violation.code === "overlay_replaced_core_answer"
+        ) ||
+        (previousValidation.valid && previousValidation.retryable)
+      ),
+    );
+    const attemptDecision: OverlayDecision = retryWithoutOverlay
+      ? {
+          ...decision,
+          mode: "skip",
+          maxNewFocus: 0,
+          maxEnglishSegments: 0,
+          reusePreferred: false,
+          candidateCount: 0,
+          reasonCodes: [...decision.reasonCodes, "validator_retry_without_overlay"],
+        }
+      : decision;
+    const attemptSelection: CandidateSelection = retryWithoutOverlay
+      ? {
+          candidates: [],
+          noFit: true,
+          selectorVersion: selection.selectorVersion,
+        }
+      : selection;
+    const attemptCandidates = retryWithoutOverlay ? [] : candidates;
+    const attemptSelectedPhrase = retryWithoutOverlay ? undefined : selectedPhrase;
+    const attemptRealizationProfile = retryWithoutOverlay ? undefined : realizationProfile;
     const attemptId = createId("attempt");
     const requestId = createId("req");
     const started = performance.now();
@@ -886,11 +917,11 @@ export async function runEoeEngine(input: {
     try {
       const directive = buildDirective({
         analysis,
-        decision,
-        selection,
-        candidates,
-        selectedPhrase,
-        realizationProfile,
+        decision: attemptDecision,
+        selection: attemptSelection,
+        candidates: attemptCandidates,
+        selectedPhrase: attemptSelectedPhrase,
+        realizationProfile: attemptRealizationProfile,
         recentExposurePhraseIds: input.request.engineState?.recentExposurePhraseIds ?? [],
         obligations: responseObligations,
         noFitPolicy,
@@ -919,9 +950,9 @@ export async function runEoeEngine(input: {
         generationAttempt: attemptNumber,
         mockScenario: input.request.engineState?.mockScenario,
         eoeContext: {
-          selectedPhrase: selectedPhrase?.canonical,
-          selectedPhraseVariants: selectedPhrase?.variants,
-          allowedPositions: realizationProfile?.allowedPositions,
+          selectedPhrase: attemptSelectedPhrase?.canonical,
+          selectedPhraseVariants: attemptSelectedPhrase?.variants,
+          allowedPositions: attemptRealizationProfile?.allowedPositions,
           responseObligations: responseObligations.map((item) => ({
             kind: item.kind,
             description: item.description,
@@ -944,8 +975,8 @@ export async function runEoeEngine(input: {
       lastResult = result;
       const context = {
         analysis,
-        decision,
-        selection,
+        decision: attemptDecision,
+        selection: attemptSelection,
         assistanceActive: conversationContext.assistance?.contextV2 !== undefined,
       };
       const templateResult = parseProviderResponseTemplate(result.content);
@@ -966,9 +997,9 @@ export async function runEoeEngine(input: {
       } else {
         pipeline.templateParse = "passed";
         const templateValidation = validateProviderResponseTemplate(templateResult.template, {
-          selectedPhrase,
-          realizationProfile,
-          effectiveLevel: decision.effectiveLevel,
+          selectedPhrase: attemptSelectedPhrase,
+          realizationProfile: attemptRealizationProfile,
+          effectiveLevel: attemptDecision.effectiveLevel,
           allowedNoFitReasons: noFitPolicy.allowedReasons,
           assistanceActive: conversationContext.assistance?.contextV2 !== undefined,
         });
@@ -986,11 +1017,11 @@ export async function runEoeEngine(input: {
           const mapping = mapProviderTemplateToDomain(templateResult.template, {
             analysis,
             policyVersion: EOE_POLICY_VERSION,
-            selectedPhraseId: selection.selectedPhraseId,
-            selectedPhrase: selectedPhrase
+            selectedPhraseId: attemptSelection.selectedPhraseId,
+            selectedPhrase: attemptSelectedPhrase
               ? conversationContext.assistance?.resolved && conversationContext.assistance.sourcePhraseSurface
                 ? conversationContext.assistance.sourcePhraseSurface
-                : realizePhraseSurface(selectedPhrase, templateValidation.position)
+                : realizePhraseSurface(attemptSelectedPhrase, templateValidation.position)
               : undefined,
             selectedPhraseIsNew: selectedCandidate ? !selectedCandidate.isReuse : false,
           });
@@ -1074,6 +1105,50 @@ export async function runEoeEngine(input: {
                     code: item.code,
                     details: item.details,
                   }));
+                  const incompleteNaturalness = reviewNaturalness({
+                    response: hardValidation.response,
+                    context,
+                    attemptNumber,
+                    mode: input.naturalnessMode ?? "default",
+                  });
+                  naturalness = incompleteNaturalness;
+                  const incompleteWarnings = [
+                    ...new Set([
+                      ...completeness.issues,
+                      ...(incompleteNaturalness?.issues ?? []),
+                    ]),
+                  ];
+                  softQuality = {
+                    acceptable: false,
+                    warnings: incompleteWarnings,
+                    confidence: Number(Math.max(
+                      0.2,
+                      0.8 - incompleteWarnings.length * 0.08,
+                    ).toFixed(2)),
+                    retryRecommended: attemptNumber === 1,
+                  };
+                  if (!completeness.issues.includes("non_answering_template")) {
+                    safeIncompleteCandidates.push({
+                      response: generatedResponseSchema.parse({
+                        ...hardValidation.response,
+                        policyVersion: EOE_POLICY_VERSION,
+                        generationAttemptId: attemptId,
+                      }),
+                      taskCompleteness: completeness,
+                      naturalness: incompleteNaturalness,
+                      softQuality,
+                      premisePreservation: latestPremisePreservation ?? reviewPremisePreservation({
+                        responseText: "",
+                        premises: [],
+                      }),
+                      noFitReason: templateResult.template.usePhrase
+                        ? undefined
+                        : templateResult.template.noFitReason,
+                      realizedPhrasePosition: templateResult.template.usePhrase
+                        ? templateValidation.position
+                        : undefined,
+                    });
+                  }
                 } else {
                   naturalness = reviewNaturalness({
                     response: hardValidation.response,
@@ -1234,6 +1309,19 @@ export async function runEoeEngine(input: {
       retryable: false,
     };
   }
+  if (!finalResponse && safeIncompleteCandidates.length > 0) {
+    const chosen = [...safeIncompleteCandidates].sort(
+      (left, right) => softQualityScore(right) - softQualityScore(left),
+    )[0];
+    finalResponse = chosen.response;
+    latestTaskCompleteness = chosen.taskCompleteness;
+    latestNaturalness = chosen.naturalness;
+    latestSoftQuality = chosen.softQuality;
+    latestPremisePreservation = chosen.premisePreservation;
+    finalNoFitReason = chosen.noFitReason;
+    realizedPhrasePosition = chosen.realizedPhrasePosition;
+    displayedWithSoftQualityWarning = true;
+  }
   if (realizedPhrasePosition && selection.selectedPhraseId) {
     selection = {
       ...selection,
@@ -1251,7 +1339,7 @@ export async function runEoeEngine(input: {
     finalValidation = previousValidation ?? { valid: true, violations: [], retryable: false };
   } else {
     naturalFallbackUsed = true;
-    finalResponse = createNaturalFallback(analysis, userMessage);
+    finalResponse = createNaturalFallback(analysis);
     const fallbackContext = {
       analysis,
       decision,

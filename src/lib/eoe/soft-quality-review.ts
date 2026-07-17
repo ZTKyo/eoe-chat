@@ -10,6 +10,7 @@ import { reviewResponseDepth } from "./response-depth";
 
 const hardCompletenessIssues = new Set([
   "empty_or_trivial_answer",
+  "non_answering_template",
   "explicit_language_request_violated",
   "phrase_clarification_ambiguity_not_resolved",
   "phrase_clarification_context_error",

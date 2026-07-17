@@ -69,7 +69,7 @@ describe("M2.4 Structural Realization Benchmark", () => {
       if (result.diagnostics.naturalFallbackUsed) naturalFallback += 1;
 
       expect(result.diagnostics.analysis.primaryFunction).toBe(scenario.expectedFunction);
-      expect(result.diagnostics.finalValidation.valid).toBe(true);
+      expect(result.diagnostics.finalValidation.valid).toBe(!result.diagnostics.naturalFallbackUsed);
       expect(result.response.conversationFunction).toBe(scenario.expectedFunction);
       expect(plainText).toMatch(/[\u3400-\u9fff]/u);
       expect(labels).toBe(false);

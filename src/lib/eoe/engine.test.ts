@@ -4,6 +4,7 @@ import type { MockScenario } from "@/domain/eoe";
 import { MockProvider } from "@/lib/providers/mock-provider";
 import { ProviderGateway } from "@/lib/providers/gateway";
 import { ProviderError, type Provider } from "@/lib/providers/types";
+import { EOE_PROVIDER_TEMPLATE_SCHEMA_VERSION } from "./constants";
 import { runEoeEngine } from "./engine";
 import { createPersistenceRecords } from "./persistence-events";
 
@@ -227,7 +228,60 @@ describe("EOE Engine retry and fallback", () => {
     const result = await runEoeEngine({ request: request("double_failure"), gateway: gateway(), config: { enabled: true, fixedLevel: 2, developerMode: false } });
     expect(result.diagnostics.attempts).toHaveLength(2);
     expect(result.diagnostics.naturalFallbackUsed).toBe(true);
-    expect(result.diagnostics.finalValidation.valid).toBe(true);
+    expect(result.diagnostics.finalValidation.valid).toBe(false);
+    expect(result.response.intentPreserved).toBe(false);
+    expect(result.response.segments.map((segment) => segment.content).join("")).toContain("没有通过质量检查");
+  });
+
+  it("keeps a safe substantive Provider answer when completeness remains disputed", async () => {
+    const mock = new MockProvider();
+    const selectedPhrases: Array<string | undefined> = [];
+    const substantiveButIncomplete: Provider = {
+      id: "safe-incomplete",
+      modelId: "safe-incomplete-v1",
+      capabilities: mock.capabilities,
+      async generate(input) {
+        selectedPhrases.push(input.eoeContext?.selectedPhrase);
+        return {
+          content: JSON.stringify({
+            schemaVersion: EOE_PROVIDER_TEMPLATE_SCHEMA_VERSION,
+            usePhrase: false,
+            responseTemplate:
+              "TypeScript 中，unknown 更安全，使用前必须先做类型收窄或类型守卫；any 更宽松，但这会降低类型安全性。",
+            noFitReason: input.eoeContext?.allowedNoFitReasons?.[0] ?? "phrase_not_natural",
+          }),
+          providerId: this.id,
+          modelId: this.modelId,
+          requestId: input.requestId,
+          latencyMs: 1,
+        };
+      },
+    };
+    const providerGateway = new ProviderGateway({
+      primary: substantiveButIncomplete,
+      vision: mock,
+      mock,
+      forceMock: false,
+    });
+    const result = await runEoeEngine({
+      request: {
+        conversationId: "technical-safe-incomplete",
+        messages: [{ role: "user", content: "解释 TypeScript 里 unknown 和 any 的区别" }],
+        attachments: [],
+        engineState: { recentExposurePhraseIds: [] },
+      },
+      gateway: providerGateway,
+      config: { enabled: true, fixedLevel: 2, developerMode: true },
+    });
+    const text = result.response.segments.map((segment) => segment.content).join("");
+    expect(result.diagnostics.attempts).toHaveLength(2);
+    expect(selectedPhrases[0]).toBeDefined();
+    expect(selectedPhrases[1]).toBeUndefined();
+    expect(result.diagnostics.naturalFallbackUsed).toBe(false);
+    expect(result.diagnostics.displayedWithSoftQualityWarning).toBe(true);
+    expect(result.diagnostics.finalValidation.valid).toBe(false);
+    expect(text).toContain("unknown 更安全");
+    expect(text).not.toContain("没有通过质量检查");
   });
 
   it("retries an incomplete plan independently of noFit and accepts the complete second answer", async () => {
