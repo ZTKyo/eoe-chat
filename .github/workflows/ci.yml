@@ -18,8 +18,8 @@ jobs:
       EOE_ENABLE_IMAGE_INPUT: "false"
       EOE_DEVELOPER_MODE: "false"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -28,4 +28,5 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
