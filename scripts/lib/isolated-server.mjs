@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import net from "node:net";
 import { dirname, join, resolve } from "node:path";
@@ -61,9 +62,10 @@ export async function waitForIdentity({ port, expected, timeoutMs = 120_000 }) {
 }
 
 export function startNextServer({ cwd, port, env }) {
-  const nextCli = join(cwd, "node_modules", "next", "dist", "bin", "next");
-  return spawn(process.execPath, [nextCli, "dev", "--hostname", host, "--port", String(port)], {
-    cwd,
+  const workspace = realpathSync(cwd);
+  const nextCli = join(workspace, "node_modules", "next", "dist", "bin", "next");
+  return spawn(process.execPath, [nextCli, "dev", "--webpack", "--hostname", host, "--port", String(port)], {
+    cwd: workspace,
     env,
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,

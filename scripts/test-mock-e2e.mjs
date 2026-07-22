@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   assertPortAvailable,
@@ -10,7 +11,7 @@ import {
   writeSafeRuntimeState,
 } from "./lib/isolated-server.mjs";
 
-const cwd = process.cwd();
+const cwd = realpathSync(process.cwd());
 const port = 3100;
 const runId = `mock-e2e-${crypto.randomUUID()}`;
 const startedAt = new Date().toISOString();
