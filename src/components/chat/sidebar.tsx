@@ -2,6 +2,7 @@
 
 import { MessageSquareText, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { Conversation } from "@/domain/chat";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -125,8 +126,11 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="mt-3 rounded-xl border border-[#e1e5e6] bg-white/70 px-3 py-2.5 text-[11px] leading-relaxed text-[var(--muted)]">
-          对话仅保存在当前设备。API Key 只在服务端读取。
+        <div className="mt-3 space-y-2">
+          <PwaInstallButton />
+          <div className="rounded-xl border border-[#e1e5e6] bg-white/70 px-3 py-2.5 text-[11px] leading-relaxed text-[var(--muted)]">
+            对话仅保存在当前设备。API Key 只在服务端读取。
+          </div>
         </div>
       </aside>
     </>

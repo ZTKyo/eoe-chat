@@ -3,6 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
+  // A single local Next dev server is intentionally shared by both device projects.
+  workers: 1,
   retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
